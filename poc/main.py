@@ -1,24 +1,21 @@
+import sys
 import time
 import torch
-import torch.nn as nn
 from torch.autograd import Variable
 
-import sys
+torch.backends.cudnn.deterministic = True
 
-batchsize = int(sys.argv[1])
-seqlen = 32
-emsize = 2048 # embedding dimension
-nhid = 2048 # the dimension of the feedforward network model in nn.TransformerEncoder
-nlayers = 4 # the number of nn.TransformerEncoderLayer in nn.TransformerEncoder
-nhead = 16 # the number of heads in the multiheadattention models
-dropout = 0.2 # the dropout value
+# torch.cuda.get_rng_state(device) torch.cuda.set_rng_state(state, device)
 
-records = {}
+from model import layers
+
+def forward_pass():
+
 
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.layers = nn.ModuleList([ nn.TransformerEncoderLayer(emsize, nhead, nhid, dropout) for _ in range(nlayers) ])
+        self.layers = nn.ModuleList()
 
     def forward(self, x):
         self.output = []
@@ -29,15 +26,7 @@ class Net(nn.Module):
             self.input.append(x)
 
             # compute output
-            torch.cuda.current_stream().synchronize()
-            tic = time.time()
-
             x = layer(x)
-
-            torch.cuda.current_stream().synchronize()
-            toc = time.time()
-
-            records[f"f{i}"] = toc - tic
 
             # add to list of outputs
             self.output.append(x)
@@ -58,13 +47,6 @@ class Net(nn.Module):
             toc = time.time()
 
             records[f"b{i}"] = toc - tic
-
-def show_size(layers):
-    for i, layer in enumerate(layers):
-        bsize = sum( p.nelement() * p.element_size() for p in layers.parameters() )
-        print(f"l{i}", bsize >> 20)
-        print(f"n{i}", (bsize >> 20) / 46 / 1000)
-        print(f"p{i}", (bsize >> 20) / 4.8 / 1000)
 
 if __name__ == '__main__':
     model = Net()
