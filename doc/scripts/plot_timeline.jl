@@ -30,11 +30,11 @@ function waitfor(a::Task, b::Task)
     push!(b.notify, a)
 end
 
-function gen_svg(timelines::Vector{TimeLine}, line_height=16, title_offset=20)
+function gen_svg(timelines::Vector{TimeLine}, line_height=32, title_offset=40)
     function wrap_svg(f, max_width, max_height)
         header = """
             <svg viewBox="-2 -2 $(max_width+title_offset+4) $(max_height+4)" xmlns="http://www.w3.org/2000/svg" version="1.1">
-                <style> .t { font: italic 6px sans-serif; } </style>
+                <style> .t { font: italic 11px sans-serif; } </style>
                 <rect x="-2" y="-2" width="$(max_width+title_offset+4)" height="$(max_height+4)" fill="white"/>
         """
 
@@ -67,9 +67,9 @@ function gen_svg(timelines::Vector{TimeLine}, line_height=16, title_offset=20)
 end
 
 # we assume gradients are applied to the weights before switching out.
-function forward_backward(ncards=4, nlayers=10; time_calculation=12, time_pcie=16, time_nvlink=10, time_back_calculation=2*time_calculation)
+function forward_backward(ncards=4, nlayers=10; time_calculation=24, time_pcie=32, time_nvlink=20, time_back_calculation=2*time_calculation)
     pcie_in = TimeLine("P_IN")
-    gpus = [ TimeLine("G_$i") for i in 1:ncards ]
+    gpus = [ TimeLine("G_$(i-1)") for i in 1:ncards ]
     nvlinks = [ TimeLine("N_$i") for i in 1:ncards-1 ]
     pcie_out = TimeLine("P_OUT")
 
@@ -194,20 +194,20 @@ end
 
 
 
-AS("image/svg+xml", gen_svg(forward_backward(time_calculation=12, time_pcie=16, time_nvlink=10)))
+AS("image/svg+xml", gen_svg(forward_backward(time_calculation=24, time_pcie=32, time_nvlink=20)))
 
 open("pcie_dominant.svg", "w") do f
-    f << gen_svg(forward_backward(time_calculation=12, time_pcie=24, time_nvlink=8))
+    f << gen_svg(forward_backward(time_calculation=24, time_pcie=48, time_nvlink=18))
 end
 
 open("calculation_dominant.svg", "w") do f
-    f << gen_svg(forward_backward(time_calculation=24, time_pcie=16, time_nvlink=10))
+    f << gen_svg(forward_backward(time_calculation=48, time_pcie=32, time_nvlink=20, time_back_calculation=80))
 end
 
 open("nvlink_dominant.svg", "w") do f
-    f << gen_svg(forward_backward(time_calculation=14, time_pcie=16, time_nvlink=24))
+    f << gen_svg(forward_backward(time_calculation=28, time_pcie=32, time_nvlink=48))
 end
 
 open("x.svg", "w") do f
-    f << gen_svg(forward_backward(time_calculation=12, time_pcie=16, time_nvlink=10))
+    f << gen_svg(forward_backward(time_calculation=24, time_pcie=32, time_nvlink=20))
 end
